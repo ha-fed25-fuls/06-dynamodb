@@ -1,3 +1,6 @@
 node_modules/
 dist
 .DS_Store
+
+# Hemligheter sparas i .env-filer, som inte laddas upp till GitHub
+.env
