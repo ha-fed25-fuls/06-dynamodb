@@ -1,26 +1,17 @@
-import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocumentClient, GetCommand, PutCommand, ScanCommand, type ScanCommandOutput } from "@aws-sdk/lib-dynamodb";
+import { GetCommand, PutCommand, ScanCommand, type ScanCommandOutput } from "@aws-sdk/lib-dynamodb";
 import express, { type Router } from 'express'
 import type { Fruit } from '../types.ts'
-
+import db from '../aws.ts'
 const router: Router = express.Router()
 
 
 
-const client: DynamoDBClient = new DynamoDBClient({
-	region: "eu-north-1",  // se till att använda den region som du använder för DynamoDB
-	credentials: {
-		accessKeyId: process.env.ACCESS_KEY ?? '',
-		secretAccessKey: process.env.SECRET_ACCESS_KEY ?? '',
-	},
-});
-// ?? kallas för nullish coalescing operator
-const db: DynamoDBDocumentClient = DynamoDBDocumentClient.from(client);
 const myTable: string = 'fed25-fruits'  // din tabell
 
 
 
-type ScanResult = Record<string, any>[] | undefined
+// type ScanResult = Record<string, any>[] | undefined
+// TODO: använd unknown tills vi Zod-validerat datan.
 
 // GET /fruits
 // vi behöver inte ha med "/fruits" eftersom den finns i server.ts
@@ -33,7 +24,7 @@ router.get<{}, Fruit[]>('/', async (req, res) => {
 	console.log('GET /fruits, Lyckad hämtning? ', result)
 	// result är ett objekt som innehåller Items (optional)
 	// TODO: validera Items (med Zod)
-	
+
 	// GÖR INTE SÅ HÄR - använd zod schema parse
 	res.send(result.Items as unknown as Fruit[])
 })
