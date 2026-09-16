@@ -1,6 +1,6 @@
-import { GetCommand, PutCommand, ScanCommand, type ScanCommandOutput } from "@aws-sdk/lib-dynamodb";
-import express, { type Router } from 'express'
-import { FruitListFromDbSchema, type Fruit } from '../types.ts'
+import { GetCommand, PutCommand, ScanCommand, type GetCommandOutput, type ScanCommandOutput } from "@aws-sdk/lib-dynamodb";
+import express, { type Response, type Router } from 'express'
+import { FruitFromDbSchema, FruitListFromDbSchema, type Fruit } from '../types.ts'
 import db from '../aws.ts'
 import * as z from 'zod'
 
@@ -12,12 +12,9 @@ const myTable: string = 'fed25-fruits'  // din tabell
 
 
 
-// type ScanResult = Record<string, any>[] | undefined
-// TODO: använd unknown tills vi Zod-validerat datan.
-
 // GET /fruits
 // vi behöver inte ha med "/fruits" eftersom den finns i server.ts
-router.get<{}, Fruit[]>('/', async (req, res) => {
+router.get<{}, Fruit[] | void>('/', async (req, res) => {
 	// hämta alla items i en tabell - VARNING! Långsam, använd andra metoder om tabellen växer
 	let scanCommand = new ScanCommand({
 		TableName: myTable
@@ -36,12 +33,67 @@ router.get<{}, Fruit[]>('/', async (req, res) => {
 		res.send(fruits)
 
 	} catch(error) {
-		const message = (error instanceof Error) ? error.message : String(error)
-		console.log('Felaktigt format på datan från databasen! ', message)
-		res.sendStatus(500)
+		handleError(error, res)
 	}
 
 })
+
+
+type IdParam = { id: string; }
+
+// GET /fruits/:id
+router.get<IdParam, Fruit | void>('/:id', async (req, res) => {
+	// förbered kommando
+	// skicka kommando till DynamoDB
+	// om inget data hittas, statuskod 404
+	// validera: parse Item(s) från databasen
+	// skicka tillbaka Fruit objekt
+
+	const id: string = req.params.id
+
+	let getCommand = new GetCommand({
+		TableName: myTable,
+		Key: {
+			pk: `FRUIT#${id}`,
+			sk: 'meta'
+		}
+	})
+	const result: GetCommandOutput = await db.send(getCommand)
+	console.log('GET /fruits/:id result: ', result)
+	// Genom att titta på utskriften i konsolen, kan vi se att result.Item inte finns om databasen inte hittar en frukt med givet id
+
+	if( !result.Item ) {
+		res.sendStatus(404)
+		return
+	}
+
+	try {
+		const fruitFromDb = z.parse(FruitFromDbSchema, result.Item)
+		const fruit: Fruit = {
+			id: extractIdFromPk(fruitFromDb.pk),
+			name: fruitFromDb.name,
+			price: fruitFromDb.price
+		}
+		res.send(fruit)
+
+	} catch(error) {
+		handleError(error, res)
+	}
+
+	// res.sendStatus(200)
+})
+
+
+function handleError(error: any, res: Response): void {
+	const message = (error instanceof Error) ? error.message : String(error)
+	console.log('Felaktigt format på datan från databasen! ', message)
+	res.sendStatus(500)
+}
+
+// Övning: skapa en funktion som kan göra om ett objekt från FruitFromDbSchema -> Fruit
+
+
+
 
 function extractIdFromPk(pk: string): string {
 	// "FRUIT#3" -> "3"
