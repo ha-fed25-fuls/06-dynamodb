@@ -1,7 +1,9 @@
 import { GetCommand, PutCommand, ScanCommand, type ScanCommandOutput } from "@aws-sdk/lib-dynamodb";
 import express, { type Router } from 'express'
-import type { Fruit } from '../types.ts'
+import { FruitListFromDbSchema, type Fruit } from '../types.ts'
 import db from '../aws.ts'
+import * as z from 'zod'
+
 const router: Router = express.Router()
 
 
@@ -23,11 +25,32 @@ router.get<{}, Fruit[]>('/', async (req, res) => {
 	const result: ScanCommandOutput = await db.send(scanCommand)
 	console.log('GET /fruits, Lyckad hämtning? ', result)
 	// result är ett objekt som innehåller Items (optional)
-	// TODO: validera Items (med Zod)
 
-	// GÖR INTE SÅ HÄR - använd zod schema parse
-	res.send(result.Items as unknown as Fruit[])
+	try {
+		const fruitsFromDb = z.parse(FruitListFromDbSchema, result.Items)
+		const fruits: Fruit[] = fruitsFromDb.map(fruit => ({
+			id: extractIdFromPk(fruit.pk),
+			name: fruit.name,
+			price: fruit.price
+		}))
+		res.send(fruits)
+
+	} catch(error) {
+		const message = (error instanceof Error) ? error.message : String(error)
+		console.log('Felaktigt format på datan från databasen! ', message)
+		res.sendStatus(500)
+	}
+
 })
+
+function extractIdFromPk(pk: string): string {
+	// "FRUIT#3" -> "3"
+	// split ger oss denna lista: ['FRUIT', '3']
+	return pk.split('#')[1] ?? ''
+}
+// split - delar upp en sträng i flera bitar
+// slice - klipper ut en bit
+// splice - ändrar en lista, tar bort och/eller lägger till
 
 /*
 {
