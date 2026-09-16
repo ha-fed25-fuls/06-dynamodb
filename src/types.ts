@@ -24,3 +24,20 @@ export const FruitFromDbSchema = z.object({
 
 export const FruitListFromDbSchema = z.array(FruitFromDbSchema)
 
+
+/*
+// ändra en item
+let result = db.send(new UpdateCommand({
+	TableName: myTable,
+	Key: { yourPartitionKeyName: 'värdet på PK för den item som ska ändras' },
+	UpdateExpression: 'SET #dt = :d, score = :s',
+	ExpressionAttributeNames: {
+		'#dt': 'date'  // använd om man inte kan skriva t.ex. "date" direkt eftersom det är ett reserverat ord
+	},
+	ExpressionAttributeValues: {
+		// Detta är alla fält som ska ändras
+		':d': Date.now(),
+		':s': 500
+	}
+})
+*/

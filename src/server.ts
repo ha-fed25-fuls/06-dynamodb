@@ -20,6 +20,7 @@ const logger: RequestHandler = (req, res, next) => {
 	next()
 }
 app.use('/', logger)
+app.use(express.json())
 
 // endpoints
 app.use('/fruits', fruitsRouter)
