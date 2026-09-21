@@ -1,6 +1,7 @@
+import { randomUUID } from "node:crypto"
 import { GetCommand, PutCommand, ScanCommand, UpdateCommand, type GetCommandOutput, type ScanCommandOutput, type UpdateCommandOutput } from "@aws-sdk/lib-dynamodb";
 import express, { type Response, type Router } from 'express'
-import { FruitFromDbSchema, FruitListFromDbSchema, FruitSchema, type Fruit } from '../types.ts'
+import { FruitFromDbSchema, FruitListFromDbSchema, FruitSchema, FruitWithoutIdSchema, type Fruit, type FruitWithoutId } from '../types.ts'
 import db from '../aws.ts'
 import * as z from 'zod'
 import { ConditionalCheckFailedException } from "@aws-sdk/client-dynamodb";
@@ -11,7 +12,7 @@ const router: Router = express.Router()
 const myTable: string = 'fed25-fruits'  // din tabell
 
 type IdParam = { id: string; }
-
+type IdResponse = { id: string; }
 
 
 
@@ -141,6 +142,46 @@ router.put<IdParam, void, Fruit>('/:id', async (req, res) => {
 })
 
 
+// POST /fruits
+// Lägga till ett nytt frukt-objekt i databasen
+// Generiska parametrar: url-parametrar, response body, request body, request querystring
+router.post<{}, IdResponse, FruitWithoutId>('/', async (req, res) => {
+	// validera body
+	// skapa kommando, skicka till dynamodb
+	// vad får vi för svar?
+	// svara med vårt nya id
+
+	try {
+		const body: FruitWithoutId = FruitWithoutIdSchema.parse(req.body)
+
+		// Vi behöver generera ett unikt id
+		// Aktuell tid fungerar så länge vi kör koden helt i Express. Om vi använder Lambda (serverless) kan däremot två endpoints köras samma millisekund och vi får en kollision - två items med samma id. randomUUID är därför bättre.
+		const id = randomUUID()
+		// const id: string = String(Date.now())
+
+		const command = new PutCommand({
+			TableName: myTable,
+			Item: {
+				pk: `FRUIT#${id}`,
+				sk: `meta`,
+				...body
+			}
+		})
+		const result = await db.send(command)
+		// Vi behöver faktiskt inte göra något med svaret
+		// console.log(`POST fruit, result from db: `, result)
+
+		res.send({ id: id })
+
+	} catch(error) {
+		console.log('Okänt fel vid post', getMessage(error))
+		res.sendStatus(400)
+	}
+})
+
+
+
+// TODO DELETE /fruits/:id
 
 
 
