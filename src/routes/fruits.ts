@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto"
-import { GetCommand, PutCommand, ScanCommand, UpdateCommand, type GetCommandOutput, type ScanCommandOutput, type UpdateCommandOutput } from "@aws-sdk/lib-dynamodb";
+import { DeleteCommand, GetCommand, PutCommand, ScanCommand, UpdateCommand, type GetCommandOutput, type ScanCommandOutput, type UpdateCommandOutput } from "@aws-sdk/lib-dynamodb";
 import express, { type Response, type Router } from 'express'
 import { FruitFromDbSchema, FruitListFromDbSchema, FruitSchema, FruitWithoutIdSchema, type Fruit, type FruitWithoutId } from '../types.ts'
 import db from '../aws.ts'
@@ -181,8 +181,37 @@ router.post<{}, IdResponse, FruitWithoutId>('/', async (req, res) => {
 
 
 
-// TODO DELETE /fruits/:id
+// DELETE /fruits/:id
+// Ta bort ett frukt-objekt
+// Generiska parametrar: url-parametrar, response body, request body, request querystring
+router.delete<IdParam>('/:id', async (req, res) => {
+	// validera url-parametern, req.params.id
+	// förbered kommando, skicka till dynamodb
+	// svara med statuskod
 
+	// Vi vet att id är en icke-tom sträng - behöver inte valideras ytterligare
+	const id: string = req.params.id
+
+	const command = new DeleteCommand({
+		TableName: myTable,
+		Key: {
+			pk: `FRUIT#${id}`,
+			sk: 'meta'
+		},
+		ReturnValues: "ALL_OLD"  // ifall vi vill få tillbaka värdet som fanns innan vi tog bort det
+	})
+	const result = await db.send(command)
+	// console.log(`DELETE response from db:`, result)
+
+	// ALL_OLD fyller i result.Attributes - vi behöver det för att avgöra om vi lyckades ta bort en Item eller om det inte fanns en Item med vårt id
+	if( result.Attributes ) {
+		// tog bort
+		res.sendStatus(204)  // no content
+	} else {
+		// hittade inget att ta bort
+		res.sendStatus(404)  // not found
+	}
+})
 
 
 export default router
