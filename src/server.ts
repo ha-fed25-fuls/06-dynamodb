@@ -6,6 +6,7 @@
 import express, { type Express, type RequestHandler } from 'express'
 import type { Server } from 'node:http'
 import fruitsRouter from './routes/fruits.ts'
+import reviewsRouter from './routes/reviews.ts'
 import { formatTimestamp } from './timeUtilities.ts'
 
 
@@ -24,6 +25,7 @@ app.use(express.json())
 
 // endpoints
 app.use('/fruits', fruitsRouter)
+app.use('/reviews', reviewsRouter)
 
 
 const server: Server = app.listen(port, () => {

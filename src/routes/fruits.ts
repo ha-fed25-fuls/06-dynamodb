@@ -20,8 +20,13 @@ type IdResponse = { id: string; }
 // vi behöver inte ha med "/fruits" eftersom den finns i server.ts
 router.get<{}, Fruit[] | void>('/', async (req, res) => {
 	// hämta alla items i en tabell - VARNING! Långsam, använd andra metoder om tabellen växer
+	// filter expression behövs eftersom tabellen har utökats till att innehålla mer än bara rena Fruit-objekt
 	let scanCommand = new ScanCommand({
-		TableName: myTable
+		TableName: myTable,
+		FilterExpression: "sk = :skValue",
+		ExpressionAttributeValues: {
+			":skValue": 'meta'
+		}
 	})
 	try {
 		const result: ScanCommandOutput = await db.send(scanCommand)
